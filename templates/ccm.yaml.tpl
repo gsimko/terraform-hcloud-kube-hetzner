@@ -14,7 +14,7 @@ spec:
             - "--cloud-provider=hcloud"
             - "--leader-elect=false"
             - "--allow-untagged-cloud"
-            - "--allocate-node-cidrs=true"
+            - "--allocate-node-cidrs=false"
             - "--cluster-cidr=${cluster_cidr_ipv4}"
             - "--webhook-secure-port=0"
 %{if using_klipper_lb~}
