@@ -39,7 +39,13 @@ output "ingress_public_ipv6" {
 
 output "k3s_endpoint" {
   description = "A controller endpoint to register new nodes"
-  value       = "https://${var.use_control_plane_lb ? hcloud_load_balancer_network.control_plane.*.ip[0] : module.control_planes[keys(module.control_planes)[0]].private_ipv4_address}:6443"
+  value       = "https://${
+    var.use_control_plane_lb
+    ? hcloud_load_balancer_network.control_plane.*.ip[0]
+    : var.use_private_network
+      ? module.control_planes[keys(module.control_planes)[0]].private_ipv4_address
+      : module.control_planes[keys(module.control_planes)[0]].ipv4_address
+    }:6443"
 }
 
 output "k3s_token" {

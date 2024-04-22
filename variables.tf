@@ -95,7 +95,7 @@ variable "use_private_network" {
   description = "Whether to use a private network."
   type        = string
   default     = true
-} 
+}
 
 variable "network_ipv4_cidr" {
   description = "The main network cidr that all subnets will be created upon."
