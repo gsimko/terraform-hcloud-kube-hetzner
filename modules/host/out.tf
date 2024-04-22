@@ -7,7 +7,7 @@ output "ipv6_address" {
 }
 
 output "private_ipv4_address" {
-  value = hcloud_server_network.server.ip
+  value = var.use_private_network ? hcloud_server_network.server.ip : hcloud_server.server.ipv4_address
 }
 
 output "name" {

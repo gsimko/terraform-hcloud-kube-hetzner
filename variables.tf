@@ -90,6 +90,13 @@ variable "existing_network_id" {
     error_message = "If you pass an existing_network_id, it must be enclosed in square brackets: [id]. This is necessary to be able to unambiguously distinguish between an empty network id (default) and a user-supplied network id."
   }
 }
+
+variable "use_private_network" {
+  description = "Whether to use a private network."
+  type        = string
+  default     = true
+} 
+
 variable "network_ipv4_cidr" {
   description = "The main network cidr that all subnets will be created upon."
   type        = string

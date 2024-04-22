@@ -127,6 +127,7 @@ resource "hcloud_rdns" "server" {
 }
 
 resource "hcloud_server_network" "server" {
+  count     = var.use_private_network ? 1 : 0
   ip        = var.private_ipv4
   server_id = hcloud_server.server.id
   subnet_id = var.ipv4_subnet_id

@@ -72,6 +72,11 @@ variable "private_ipv4" {
   type        = string
 }
 
+variable "use_private_network" {
+  description = "Whether to use a private network"
+  type        = string
+}
+
 variable "server_type" {
   description = "The server type"
   type        = string
