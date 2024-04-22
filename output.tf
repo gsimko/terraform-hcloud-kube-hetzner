@@ -4,7 +4,7 @@ output "cluster_name" {
 }
 
 output "network_id" {
-  value       = data.hcloud_network.k3s.id
+  value       = var.use_private_network ? data.hcloud_network.k3s[0].id : null
   description = "The ID of the HCloud network."
 }
 
