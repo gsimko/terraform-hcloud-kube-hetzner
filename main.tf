@@ -23,14 +23,14 @@ resource "hcloud_ssh_key" "k3s" {
 }
 
 resource "hcloud_network" "k3s" {
-  count    = local.use_existing_network ? 0 : 1
+  count    = local.use_existing_network || !var.use_private_network ? 0 : 1
   name     = var.cluster_name
   ip_range = var.network_ipv4_cidr
   labels   = local.labels
 }
 
 data "hcloud_network" "k3s" {
-  id = local.use_existing_network ? var.existing_network_id[0] : hcloud_network.k3s[0].id
+  id = var.use_private_network ? (local.use_existing_network ? var.existing_network_id[0] : hcloud_network.k3s[0].id) : null
 }
 
 # We start from the end of the subnets cidr array,
