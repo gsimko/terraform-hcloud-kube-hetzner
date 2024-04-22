@@ -754,7 +754,7 @@ EOF
 
     sleep 11
 
-    INTERFACE=eth0
+    INTERFACE=$(ip link show | awk '/^2:/{print $2}' | sed 's/://g')
     MAC=$(cat /sys/class/net/$INTERFACE/address)
 
     cat <<EOF > /etc/udev/rules.d/70-persistent-net.rules
