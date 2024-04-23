@@ -123,7 +123,6 @@ resource "null_resource" "agents_add_wg" {
 
   triggers = {
     agent_id = module.agents[each.key].id
-    wg_config = local.wg_config
   }
 
   connection {
@@ -161,7 +160,6 @@ resource "null_resource" "control_add_wg" {
 
   triggers = {
     agent_id = module.control_planes[each.key].id
-    wg_config = local.wg_config
   }
 
   connection {
