@@ -986,20 +986,6 @@ EOT
   agent_ip_addresses   = [for index in range(length(local.agent_nodes)) : cidrhost(local.agent_cidr, index)]
   control_ip_addresses = [for index in range(length(local.control_plane_nodes)) : cidrhost(local.control_cidr, index)]
 
-  wg_agent_setup = [
-      "set -x",
-      "chmod 600 /tmp/k",
-      "ip link add dev wg0 type wireguard",
-      "ip address add dev wg0 ${local.agent_ip_addresses[each.value.index]}/16",
-  ]
-
-  wg_control_setup = [
-      "set -x",
-      "chmod 600 /tmp/k",
-      "ip link add dev wg0 type wireguard",
-      "ip address add dev wg0 ${local.control_ip_addresses[each.value.index]}/16",
-  ]
-
   wg_config = flatten([
       "rm /tmp/wgconfig.conf",
       "echo [Interface] >> /tmp/wgconfig.conf",
@@ -1017,8 +1003,6 @@ EOT
         "echo Endpoint = ${value.ipv4_address}:51820 >> /tmp/wgconfig.conf",
         "echo AllowedIPs = ${local.control_cidr} >> /tmp/wgconfig.conf",
       ]],
-      "rm /tmp/k",
       "wg setconf wg0 /tmp/wgconfig.conf",
-      "ip link set up dev wg0",
     ])
 }

@@ -123,7 +123,6 @@ resource "null_resource" "agents_add_wg" {
 
   triggers = {
     agent_id = module.agents[each.key].id
-    wg_agent_setup = local.wg_agent_setup
     wg_config = local.wg_config
   }
 
@@ -141,7 +140,19 @@ resource "null_resource" "agents_add_wg" {
   }
 
   provisioner "remote-exec" {
-    inline = concat(local.wg_agent_setup, local.wg_config)
+    inline = concat(
+      [
+        "set -x",
+        "chmod 600 /tmp/k",
+        "ip link add dev wg0 type wireguard",
+        "ip address add dev wg0 ${local.agent_ip_addresses[each.value.index]}/16",
+      ], 
+      local.wg_config, 
+      [
+        "rm /tmp/k",
+        "ip link set up dev wg0",
+      ]
+    )
   }
 }
 
@@ -150,7 +161,6 @@ resource "null_resource" "control_add_wg" {
 
   triggers = {
     agent_id = module.control_planes[each.key].id
-    wg_control_setup = local.wg_control_setup
     wg_config = local.wg_config
   }
 
@@ -168,6 +178,18 @@ resource "null_resource" "control_add_wg" {
   }
 
   provisioner "remote-exec" {
-    inline = concat(local.wg_control_setup, local.wg_config)
+    inline = concat(
+      [
+        "set -x",
+        "chmod 600 /tmp/k",
+        "ip link add dev wg0 type wireguard",
+        "ip address add dev wg0 ${local.control_ip_addresses[each.value.index]}/16",
+      ], 
+      local.wg_config, 
+      [
+        "rm /tmp/k",
+        "ip link set up dev wg0",
+      ]
+    )
   }
 }
