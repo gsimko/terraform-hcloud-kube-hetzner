@@ -168,7 +168,7 @@ resource "null_resource" "agents_add_wg" {
 }
 
 resource "null_resource" "control_add_wg" {
-  for_each = local.agent_nodes
+  for_each = local.control_planes
 
   triggers = {
     agent_id = module.control_planes[each.key].id
