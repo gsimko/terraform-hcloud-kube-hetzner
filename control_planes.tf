@@ -32,7 +32,7 @@ module "control_planes" {
 
   # We leave some room so 100 eventual Hetzner LBs that can be created perfectly safely
   # It leaves the subnet with 254 x 254 - 100 = 64416 IPs to use, so probably enough.
-  private_ipv4 = var.use_private_network ? cidrhost(hcloud_network_subnet.control_plane[[for i, v in var.control_plane_nodepools : i if v.name == each.value.nodepool_name][0]].ip_range, each.value.index + 101) : null
+  private_ipv4 = var.use_private_network  ? cidrhost(hcloud_network_subnet.control_plane[[for i, v in var.control_plane_nodepools : i if v.name == each.value.nodepool_name][0]].ip_range, each.value.index + 101) : local.control_ip_addresses[each.value.index]
 
   labels = merge(local.labels, local.labels_control_plane_node)
 
@@ -90,13 +90,16 @@ locals {
         var.use_control_plane_lb ? hcloud_load_balancer_network.control_plane.*.ip[0] :
         (var.use_private_network
           ? module.control_planes[k].private_ipv4_address == module.control_planes[keys(module.control_planes)[0]].private_ipv4_address
-          : module.control_planes[k].ipv4_address == module.control_planes[keys(module.control_planes)[0]].ipv4_address)
+          # : module.control_planes[k].ipv4_address == module.control_planes[keys(module.control_planes)[0]].ipv4_address)
+          : module.control_planes[k].private_ipv4_address == module.control_planes[keys(module.control_planes)[0]].private_ipv4_address)
         ? (var.use_private_network
           ? module.control_planes[keys(module.control_planes)[1]].private_ipv4_address
-          : module.control_planes[keys(module.control_planes)[1]].ipv4_address)
+          # : module.control_planes[keys(module.control_planes)[1]].ipv4_address)
+          : module.control_planes[keys(module.control_planes)[1]].private_ipv4_address)
         : (var.use_private_network
           ? module.control_planes[keys(module.control_planes)[0]].private_ipv4_address
-          : module.control_planes[keys(module.control_planes)[0]].ipv4_address)
+          # : module.control_planes[keys(module.control_planes)[0]].ipv4_address)
+          : module.control_planes[keys(module.control_planes)[0]].private_ipv4_address)
         }:6443"
       token                       = local.k3s_token
       disable-cloud-controller    = true

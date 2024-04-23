@@ -44,7 +44,8 @@ output "k3s_endpoint" {
     ? hcloud_load_balancer_network.control_plane.*.ip[0]
     : var.use_private_network
       ? module.control_planes[keys(module.control_planes)[0]].private_ipv4_address
-      : module.control_planes[keys(module.control_planes)[0]].ipv4_address
+      # : module.control_planes[keys(module.control_planes)[0]].ipv4_address
+      : module.control_planes[keys(module.control_planes)[0]].private_ipv4_address
     }:6443"
 }
 

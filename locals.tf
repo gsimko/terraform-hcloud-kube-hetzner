@@ -274,8 +274,15 @@ locals {
         description = "Allow Incoming SSH Traffic"
         direction   = "in"
         protocol    = "tcp"
-        port        = var.ssh_port
+        port        = tostring(var.ssh_port)
         source_ips  = var.firewall_ssh_source
+      },
+      {
+        description = "Allow incoming wireguard"
+        direction   = "in"
+        protocol    = "tcp"
+        port        = "51820"
+        source_ips  = ["0.0.0.0/0", "::/0"]
       },
     ],
     var.firewall_kube_api_source == null ? [] : [
@@ -327,6 +334,27 @@ locals {
         direction       = "out"
         protocol        = "tcp"
         port            = "443"
+        destination_ips = ["0.0.0.0/0", "::/0"]
+      },
+      {
+        description = "Allow Outbound Requests to Kube API Server"
+        direction   = "out"
+        protocol    = "tcp"
+        port        = "6443"
+        destination_ips = ["0.0.0.0/0", "::/0"]
+      },
+      {
+        description = "Allow Outbound Requests to ssh"
+        direction   = "out"
+        protocol    = "tcp"
+        port        = "22"
+        destination_ips = ["0.0.0.0/0", "::/0"]
+      },
+      {
+        description = "Allow Outbound Requests on wireguard"
+        direction   = "out"
+        protocol    = "tcp"
+        port        = "51820"
         destination_ips = ["0.0.0.0/0", "::/0"]
       },
 
@@ -952,5 +980,9 @@ EOT
 # Cleanup some logs
 - [truncate, '-s', '0', '/var/log/audit/audit.log']
 EOT
-}
 
+  agent_cidr           = "10.0.0.0/16"
+  control_cidr         = "10.1.0.0/16"
+  agent_ip_addresses   = [for index in range(length(local.agent_nodes)) : cidrhost(local.agent_cidr, index)]
+  control_ip_addresses = [for index in range(length(local.control_plane_nodes)) : cidrhost(local.control_cidr, index)]
+}
