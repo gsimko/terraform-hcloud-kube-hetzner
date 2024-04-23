@@ -123,6 +123,8 @@ resource "null_resource" "agents_add_wg" {
 
   triggers = {
     agent_id = module.agents[each.key].id
+    wg_agent_setup = local.wg_agent_setup
+    wg_config = local.wg_config
   }
 
   connection {
@@ -139,31 +141,7 @@ resource "null_resource" "agents_add_wg" {
   }
 
   provisioner "remote-exec" {
-    inline = flatten([
-      "set -x",
-      "chmod 600 /tmp/k",
-      "ip link add dev wg0 type wireguard",
-      "ip address add dev wg0 ${local.agent_ip_addresses[each.value.index]}/16",
-      "rm /tmp/wgconfig.conf",
-      "echo [Interface] >> /tmp/wgconfig.conf",
-      "echo PrivateKey = $(cat /tmp/privatekey) >> /tmp/wgconfig.conf",
-      "echo ListenPort = 51820 >> /tmp/wgconfig.conf",
-      [for key, value in module.agents : [
-        "echo [Peer] >> /tmp/wgconfig.conf",
-        "echo PublicKey = $(ssh root@${value.ipv4_address} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i /tmp/k 'cat /tmp/publickey') >> /tmp/wgconfig.conf",
-        "echo Endpoint = ${value.ipv4_address} >> /tmp/wgconfig.conf",
-        "echo AllowedIPs = ${local.agent_cidr} >> /tmp/wgconfig.conf",
-      ]],
-      [for key, value in module.control_planes : [
-        "echo [Peer] >> /tmp/wgconfig.conf",
-        "echo PublicKey = $(ssh root@${value.ipv4_address} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i /tmp/k 'cat /tmp/publickey') >> /tmp/wgconfig.conf",
-        "echo Endpoint = ${value.ipv4_address} >> /tmp/wgconfig.conf",
-        "echo AllowedIPs = ${local.control_cidr} >> /tmp/wgconfig.conf",
-      ]],
-      "rm /tmp/k",
-      "wg setconf wg0 /tmp/wgconfig.conf",
-      "ip link set up dev wg0",
-    ])
+    inline = concat(local.wg_agent_setup, local.wg_config)
   }
 }
 
@@ -172,6 +150,8 @@ resource "null_resource" "control_add_wg" {
 
   triggers = {
     agent_id = module.control_planes[each.key].id
+    wg_control_setup = local.wg_control_setup
+    wg_config = local.wg_config
   }
 
   connection {
@@ -188,30 +168,6 @@ resource "null_resource" "control_add_wg" {
   }
 
   provisioner "remote-exec" {
-    inline = flatten([
-      "set -x",
-      "chmod 600 /tmp/k",
-      "ip link add dev wg0 type wireguard",
-      "ip address add dev wg0 ${local.control_ip_addresses[each.value.index]}/16",
-      "rm /tmp/wgconfig.conf",
-      "echo [Interface] >> /tmp/wgconfig.conf",
-      "echo PrivateKey = $(cat /tmp/privatekey) >> /tmp/wgconfig.conf",
-      "echo ListenPort = 51820 >> /tmp/wgconfig.conf",
-      [for key, value in module.agents : [
-        "echo [Peer] >> /tmp/wgconfig.conf",
-        "echo PublicKey = $(ssh root@${value.ipv4_address} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i /tmp/k 'cat /tmp/publickey') >> /tmp/wgconfig.conf",
-        "echo Endpoint = ${value.ipv4_address} >> /tmp/wgconfig.conf",
-        "echo AllowedIPs = ${local.agent_cidr} >> /tmp/wgconfig.conf",
-      ]],
-      [for key, value in module.control_planes : [
-        "echo [Peer] >> /tmp/wgconfig.conf",
-        "echo PublicKey = $(ssh root@${value.ipv4_address} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i /tmp/k 'cat /tmp/publickey') >> /tmp/wgconfig.conf",
-        "echo Endpoint = ${value.ipv4_address} >> /tmp/wgconfig.conf",
-        "echo AllowedIPs = ${local.control_cidr} >> /tmp/wgconfig.conf",
-      ]],
-      "rm /tmp/k",
-      "wg setconf wg0 /tmp/wgconfig.conf",
-      "ip link set up dev wg0",
-    ])
+    inline = concat(local.wg_control_setup, local.wg_config)
   }
 }
