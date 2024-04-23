@@ -19,6 +19,70 @@ resource "hcloud_load_balancer" "cluster" {
   }
 }
 
+resource "null_resource" "control_plane_wg_gen_key" {
+  for_each = local.control_plane_nodes
+
+  triggers = {
+    id = module.control_planes[each.key].id
+  }
+
+  connection {
+    user           = "root"
+    private_key    = var.ssh_private_key
+    agent_identity = null
+    host           = module.control_planes[each.key].ipv4_address
+    port           = var.ssh_port
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "set -ex",
+      "umask 077",
+      "wg genkey | tee /tmp/privatekey | wg pubkey > /tmp/publickey",
+    ]
+  }
+}
+
+resource "null_resource" "control_add_wg" {
+  for_each = local.control_plane_nodes
+
+  triggers = {
+    agent_id = module.control_planes[each.key].id
+  }
+
+  connection {
+    user           = "root"
+    private_key    = var.ssh_private_key
+    agent_identity = null
+    host           = module.control_planes[each.key].ipv4_address
+    port           = var.ssh_port
+  }
+
+  provisioner "file" {
+    content     = var.ssh_private_key
+    destination = "/tmp/k"
+  }
+
+  provisioner "remote-exec" {
+    inline = concat(
+      [
+        "set -x",
+        "chmod 600 /tmp/k",
+        "ip link add dev wg0 type wireguard",
+        "ip address add dev wg0 ${local.control_ip_addresses[each.value.index]}/16",
+      ], 
+      local.wg_config, 
+      [
+        "rm /tmp/k",
+        "ip link set up dev wg0",
+      ]
+    )
+  }
+
+  depends_on = [
+    null_resource.control_plane_wg_gen_key,
+  ]
+}
 
 resource "null_resource" "first_control_plane" {
   connection {
@@ -101,7 +165,8 @@ resource "null_resource" "first_control_plane" {
   }
 
   depends_on = [
-    hcloud_network_subnet.control_plane
+    hcloud_network_subnet.control_plane,
+    null_resource.control_add_wg,
   ]
 }
 

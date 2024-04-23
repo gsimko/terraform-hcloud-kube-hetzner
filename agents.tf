@@ -41,6 +41,71 @@ module "agents" {
   ]
 }
 
+resource "null_resource" "agents_wg_gen_key" {
+  for_each = local.agent_nodes
+
+  triggers = {
+    agent_id = module.agents[each.key].id
+  }
+
+  connection {
+    user           = "root"
+    private_key    = var.ssh_private_key
+    agent_identity = null
+    host           = module.agents[each.key].ipv4_address
+    port           = var.ssh_port
+  }
+
+  provisioner "remote-exec" {
+    inline = [
+      "set -ex",
+      "umask 077",
+      "wg genkey | tee /tmp/privatekey | wg pubkey > /tmp/publickey",
+    ]
+  }
+}
+
+resource "null_resource" "agents_add_wg" {
+  for_each = local.agent_nodes
+
+  triggers = {
+    agent_id = module.agents[each.key].id
+  }
+
+  connection {
+    user           = "root"
+    private_key    = var.ssh_private_key
+    agent_identity = null
+    host           = module.agents[each.key].ipv4_address
+    port           = var.ssh_port
+  }
+
+  provisioner "file" {
+    content     = var.ssh_private_key
+    destination = "/tmp/k"
+  }
+
+  provisioner "remote-exec" {
+    inline = concat(
+      [
+        "set -x",
+        "chmod 600 /tmp/k",
+        "ip link add dev wg0 type wireguard",
+        "ip address add dev wg0 ${local.agent_ip_addresses[each.value.index]}/16",
+      ], 
+      local.wg_config, 
+      [
+        "rm /tmp/k",
+        "ip link set up dev wg0",
+      ]
+    )
+  }
+
+  depends_on = [ 
+    null_resource.agents_wg_gen_key,
+  ]
+}
+
 locals {
   k3s-agent-config = { for k, v in local.agent_nodes : k => merge(
     {
@@ -124,6 +189,7 @@ resource "null_resource" "agents" {
   }
 
   depends_on = [
+    null_resource.agents_add_wg,
     null_resource.first_control_plane,
     null_resource.agent_config,
     hcloud_network_subnet.agent
