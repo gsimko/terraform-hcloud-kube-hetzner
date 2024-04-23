@@ -68,6 +68,7 @@ resource "null_resource" "control_add_wg" {
       [
         "set -x",
         "chmod 600 /tmp/k",
+        "ip link del wg0",
         "ip link add dev wg0 type wireguard",
         "ip address add dev wg0 ${local.control_ip_addresses[each.value.index]}/16",
       ], 
