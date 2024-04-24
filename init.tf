@@ -70,8 +70,7 @@ resource "null_resource" "control_add_wg" {
         "chmod 600 /tmp/k",
         "ip link add dev wg0 type wireguard || echo wg0 already exists",
 
-        "rm /tmp/wgconfig.conf",
-        "echo [Interface] >> /tmp/wgconfig.conf",
+        "echo [Interface] > /tmp/wgconfig.conf",
         "echo PrivateKey = $(cat /tmp/privatekey) >> /tmp/wgconfig.conf",
         "echo ListenPort = 51820 >> /tmp/wgconfig.conf",
         [for key, value in module.agents : [
