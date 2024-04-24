@@ -64,7 +64,7 @@ resource "null_resource" "control_add_wg" {
   }
 
   provisioner "remote-exec" {
-    inline = concat(
+    inline = flatten(
       [
         "set -ex",
         "chmod 600 /tmp/k",

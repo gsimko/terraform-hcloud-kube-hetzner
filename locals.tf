@@ -49,7 +49,7 @@ locals {
     [
       "set -ex",
       # rename the private network interface to eth1
-      "/etc/cloud/rename_interface.sh",
+      # "/etc/cloud/rename_interface.sh",
       # prepare the k3s config directory
       "mkdir -p /etc/rancher/k3s",
       # move the config file into place and adjust permissions
@@ -461,7 +461,7 @@ locals {
 
   kubelet_arg                 = ["cloud-provider=external", "volume-plugin-dir=/var/lib/kubelet/volumeplugins"]
   kube_controller_manager_arg = "flex-volume-plugin-dir=/var/lib/kubelet/volumeplugins"
-  flannel_iface               = "eth1"
+  flannel_iface               = "wg0"
 
   cilium_values = var.cilium_values != "" ? var.cilium_values : <<EOT
 # Enable Kubernetes host-scope IPAM mode (required for K3s + Hetzner CCM)
