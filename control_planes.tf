@@ -105,8 +105,8 @@ locals {
       kubelet-arg                 = concat(local.kubelet_arg, var.k3s_global_kubelet_args, var.k3s_control_plane_kubelet_args, v.kubelet_args)
       kube-controller-manager-arg = local.kube_controller_manager_arg
       flannel-iface               = local.flannel_iface
-      node-ip                     = var.use_private_network ? module.control_planes[k].private_ipv4_address : module.control_planes[k].ipv4_address
-      advertise-address           = var.use_private_network ? module.control_planes[k].private_ipv4_address : module.control_planes[k].ipv4_address
+      node-ip                     = module.control_planes[k].private_ipv4_address
+      advertise-address           = module.control_planes[k].private_ipv4_address
       node-label                  = v.labels
       node-taint                  = v.taints
       selinux                     = true
