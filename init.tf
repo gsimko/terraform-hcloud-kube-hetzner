@@ -66,9 +66,9 @@ resource "null_resource" "control_add_wg" {
   provisioner "remote-exec" {
     inline = concat(
       [
-        "set -x",
+        "set -ex",
         "chmod 600 /tmp/k",
-        "ip link add dev wg0 type wireguard && echo wg0 already exists",
+        "ip link add dev wg0 type wireguard || echo wg0 already exists",
 
         "rm /tmp/wgconfig.conf",
         "echo [Interface] >> /tmp/wgconfig.conf",

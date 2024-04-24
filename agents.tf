@@ -90,7 +90,7 @@ resource "null_resource" "agents_add_wg" {
       [
         "set -ex",
         "chmod 600 /tmp/k",
-        "ip link add dev wg0 type wireguard && echo wg0 already exists",
+        "ip link add dev wg0 type wireguard || echo wg0 already exists",
 
         "rm /tmp/wgconfig.conf",
         "echo [Interface] >> /tmp/wgconfig.conf",
