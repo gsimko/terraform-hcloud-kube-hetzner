@@ -76,17 +76,17 @@ resource "null_resource" "control_add_wg" {
         "echo [Interface] >> /tmp/wgconfig.conf",
         "echo PrivateKey = $(cat /tmp/privatekey) >> /tmp/wgconfig.conf",
         "echo ListenPort = 51820 >> /tmp/wgconfig.conf",
-        [for index, value in module.agents : [
+        [for key, value in local.agent_nodes : [
           "echo [Peer] >> /tmp/wgconfig.conf",
           "echo PublicKey = $(ssh root@${value.ipv4_address} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i /tmp/k 'cat /tmp/publickey') >> /tmp/wgconfig.conf",
           "echo Endpoint = ${value.ipv4_address}:51820 >> /tmp/wgconfig.conf",
-          "echo AllowedIPs = ${local.agent_ip_addresses[index]}/32 >> /tmp/wgconfig.conf",
+          "echo AllowedIPs = ${local.agent_ip_addresses[value.index]}/32 >> /tmp/wgconfig.conf",
         ]],
-        [for index, value in module.control_planes : [
+        [for key, value in local.control_plane_nodes : [
           "echo [Peer] >> /tmp/wgconfig.conf",
           "echo PublicKey = $(ssh root@${value.ipv4_address} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i /tmp/k 'cat /tmp/publickey') >> /tmp/wgconfig.conf",
           "echo Endpoint = ${value.ipv4_address}:51820 >> /tmp/wgconfig.conf",
-          "echo AllowedIPs = ${local.control_ip_addresses[index]}/32 >> /tmp/wgconfig.conf",
+          "echo AllowedIPs = ${local.control_ip_addresses[value.index]}/32 >> /tmp/wgconfig.conf",
         ]],
         "wg setconf wg0 /tmp/wgconfig.conf",
         
