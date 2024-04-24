@@ -20,7 +20,7 @@ module "agents" {
   location                     = each.value.location
   server_type                  = each.value.server_type
   backups                      = each.value.backups
-  ipv4_subnet_id               = var.use_private_network ? hcloud_network_subnet.agent[[for i, v in var.agent_nodepools : i if v.name == each.value.nodepool_name][0]].id : null
+  ipv4_subnet_id               = var.use_private_network ? hcloud_network_subnet.agent[each.value.nodepool_index].id : null
   dns_servers                  = var.dns_servers
   k3s_registries               = var.k3s_registries
   k3s_registries_update_script = local.k3s_registries_update_script
@@ -29,7 +29,7 @@ module "agents" {
   swap_size                    = each.value.swap_size
   use_private_network          = var.use_private_network
 
-  private_ipv4 = var.use_private_network ? cidrhost(hcloud_network_subnet.agent[[for i, v in var.agent_nodepools : i if v.name == each.value.nodepool_name][0]].ip_range, each.value.index + 101) : local.agent_ip_addresses[each.value.index]
+  private_ipv4 = var.use_private_network ? cidrhost(hcloud_network_subnet.agent[each.value.nodepool_index].ip_range, each.value.index + 101) : cidrhost(local.agent_cidr, each.value.index)
 
   labels = merge(local.labels, local.labels_agent_node)
 
@@ -88,32 +88,31 @@ resource "null_resource" "agents_add_wg" {
   provisioner "remote-exec" {
     inline = flatten(
       [
-        "set -x",
+        "set -ex",
         "chmod 600 /tmp/k",
-        "ip link del wg0",
-        "ip link add dev wg0 type wireguard",
-        "ip address add dev wg0 ${local.agent_ip_addresses[each.value.index]}/16",
+        "ip link add dev wg0 type wireguard && echo wg0 already exists",
 
         "rm /tmp/wgconfig.conf",
         "echo [Interface] >> /tmp/wgconfig.conf",
         "echo PrivateKey = $(cat /tmp/privatekey) >> /tmp/wgconfig.conf",
         "echo ListenPort = 51820 >> /tmp/wgconfig.conf",
-        [for key, value in local.agent_nodes : [
+        "echo Address = ${module.agents[each.key].private_ipv4_address}/16 >> /tmp/wgconfig.conf",
+        [for key, value in module.agents : [
           "echo [Peer] >> /tmp/wgconfig.conf",
           "echo PublicKey = $(ssh root@${value.ipv4_address} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i /tmp/k 'cat /tmp/publickey') >> /tmp/wgconfig.conf",
           "echo Endpoint = ${value.ipv4_address}:51820 >> /tmp/wgconfig.conf",
-          "echo AllowedIPs = ${local.agent_ip_addresses[value.index]}/32 >> /tmp/wgconfig.conf",
+          "echo AllowedIPs = ${value.private_ipv4_address}/32 >> /tmp/wgconfig.conf",
         ]],
-        [for key, value in local.control_plane_nodes : [
+        [for key, value in module.control_planes : [
           "echo [Peer] >> /tmp/wgconfig.conf",
           "echo PublicKey = $(ssh root@${value.ipv4_address} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i /tmp/k 'cat /tmp/publickey') >> /tmp/wgconfig.conf",
           "echo Endpoint = ${value.ipv4_address}:51820 >> /tmp/wgconfig.conf",
-          "echo AllowedIPs = ${local.control_ip_addresses[value.index]}/32 >> /tmp/wgconfig.conf",
+          "echo AllowedIPs = ${value.private_ipv4_address}/32 >> /tmp/wgconfig.conf",
         ]],
+        "ip address replace dev wg0 ${module.agents[each.key].private_ipv4_address}/16",
         "wg setconf wg0 /tmp/wgconfig.conf",
-        
-        "rm /tmp/k",
         "ip link set up dev wg0",
+        "rm /tmp/k",
       ]
     )
   }

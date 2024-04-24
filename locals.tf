@@ -136,6 +136,7 @@ locals {
       for node_index in range(nodepool_obj.count) :
       format("%s-%s-%s", pool_index, node_index, nodepool_obj.name) => {
         nodepool_name : nodepool_obj.name,
+        nodepool_index : pool_index,
         server_type : nodepool_obj.server_type,
         location : nodepool_obj.location,
         labels : concat(local.default_control_plane_labels, nodepool_obj.swap_size != "" ? local.swap_node_label : [], nodepool_obj.labels),
@@ -158,6 +159,7 @@ locals {
       for node_index in range(coalesce(nodepool_obj.count, 0)) :
       format("%s-%s-%s", pool_index, node_index, nodepool_obj.name) => {
         nodepool_name : nodepool_obj.name,
+        nodepool_index : pool_index,
         server_type : nodepool_obj.server_type,
         longhorn_volume_size : coalesce(nodepool_obj.longhorn_volume_size, 0),
         floating_ip : lookup(nodepool_obj, "floating_ip", false),
@@ -183,6 +185,7 @@ locals {
       format("%s-%s-%s", pool_index, node_key, nodepool_obj.name) => merge(
         {
           nodepool_name : nodepool_obj.name,
+          nodepool_index : pool_index,
           server_type : nodepool_obj.server_type,
           longhorn_volume_size : coalesce(nodepool_obj.longhorn_volume_size, 0),
           floating_ip : lookup(nodepool_obj, "floating_ip", false),
@@ -983,6 +986,6 @@ EOT
 
   agent_cidr           = "10.0.0.0/16"
   control_cidr         = "10.1.0.0/16"
-  agent_ip_addresses   = [for index in range(length(local.agent_nodes)) : cidrhost(local.agent_cidr, index)]
-  control_ip_addresses = [for index in range(length(local.control_plane_nodes)) : cidrhost(local.control_cidr, index)]
+  # agent_ip_addresses   = [for index in range(length(local.agent_nodes)) : cidrhost(local.agent_cidr, index)]
+  # control_ip_addresses = [for index in range(length(local.control_plane_nodes)) : cidrhost(local.control_cidr, index)]
 }
