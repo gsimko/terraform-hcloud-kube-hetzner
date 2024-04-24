@@ -29,7 +29,7 @@ module "agents" {
   swap_size                    = each.value.swap_size
   use_private_network          = var.use_private_network
 
-  private_ipv4 = var.use_private_network ? cidrhost(hcloud_network_subnet.agent[each.value.nodepool_index].ip_range, each.value.index + 101) : cidrhost(local.agent_cidr, each.value.index)
+  private_ipv4 = var.use_private_network ? cidrhost(hcloud_network_subnet.agent[each.value.nodepool_index].ip_range, each.value.index + 101) : cidrhost(local.agent_cidr_ranges[each.value.nodepool_index], each.value.index)
 
   labels = merge(local.labels, local.labels_agent_node)
 
