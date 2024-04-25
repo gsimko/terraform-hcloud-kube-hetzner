@@ -132,7 +132,7 @@ locals {
       kubelet-arg   = concat(local.kubelet_arg, var.k3s_global_kubelet_args, var.k3s_agent_kubelet_args, v.kubelet_args)
       flannel-iface = local.flannel_iface
       # node-ip       = var.use_private_network ? module.agents[k].private_ipv4_address : module.agents[k].ipv4_address
-      node-ip       = module.agents[k].private_ipv4_address
+      # node-ip       = module.agents[k].private_ipv4_address
       node-label    = v.labels
       node-taint    = v.taints
     },

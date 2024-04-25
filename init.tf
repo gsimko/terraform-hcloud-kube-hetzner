@@ -125,8 +125,8 @@ resource "null_resource" "first_control_plane" {
           flannel-iface               = local.flannel_iface
           # node-ip                     = var.use_private_network ? module.control_planes[keys(module.control_planes)[0]].private_ipv4_address : module.control_planes[keys(module.control_planes)[0]].ipv4_address
           # advertise-address           = var.use_private_network ? module.control_planes[keys(module.control_planes)[0]].private_ipv4_address : module.control_planes[keys(module.control_planes)[0]].ipv4_address
-          node-ip                     = module.control_planes[keys(module.control_planes)[0]].private_ipv4_address
-          advertise-address           = module.control_planes[keys(module.control_planes)[0]].private_ipv4_address
+          # node-ip                     = module.control_planes[keys(module.control_planes)[0]].private_ipv4_address
+          # advertise-address           = module.control_planes[keys(module.control_planes)[0]].private_ipv4_address
           node-taint                  = local.control_plane_nodes[keys(module.control_planes)[0]].taints
           node-label                  = local.control_plane_nodes[keys(module.control_planes)[0]].labels
           cluster-cidr                = var.cluster_ipv4_cidr
