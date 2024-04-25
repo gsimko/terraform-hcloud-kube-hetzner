@@ -32,7 +32,7 @@ module "control_planes" {
 
   # We leave some room so 100 eventual Hetzner LBs that can be created perfectly safely
   # It leaves the subnet with 254 x 254 - 100 = 64416 IPs to use, so probably enough.
-  private_ipv4 = var.use_private_network ? cidrhost(hcloud_network_subnet.control_plane[each.value.nodepool_index].ip_range, each.value.index + 101) : cidrhost(local.control_cidr_ranges[each.value.nodepool_index], each.value.index)
+  private_ipv4 = var.use_private_network ? cidrhost(hcloud_network_subnet.control_plane[each.value.nodepool_index].ip_range, each.value.index + 101) : cidrhost(local.control_cidr_ranges[each.value.nodepool_index], each.value.index + 1)
 
   labels = merge(local.labels, local.labels_control_plane_node)
 

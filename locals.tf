@@ -283,7 +283,7 @@ locals {
       {
         description = "Allow incoming wireguard"
         direction   = "in"
-        protocol    = "tcp"
+        protocol    = "udp"
         port        = "51820"
         source_ips  = ["0.0.0.0/0", "::/0"]
       },
@@ -356,7 +356,7 @@ locals {
       {
         description = "Allow Outbound Requests on wireguard"
         direction   = "out"
-        protocol    = "tcp"
+        protocol    = "udp"
         port        = "51820"
         destination_ips = ["0.0.0.0/0", "::/0"]
       },
