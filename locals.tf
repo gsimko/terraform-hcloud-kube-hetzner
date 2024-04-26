@@ -48,8 +48,6 @@ locals {
   common_pre_install_k3s_commands = concat(
     [
       "set -ex",
-      # rename the private network interface to eth1
-      # "/etc/cloud/rename_interface.sh",
       # prepare the k3s config directory
       "mkdir -p /etc/rancher/k3s",
       # move the config file into place and adjust permissions
@@ -733,6 +731,8 @@ installCRDs: true
   }, var.kured_options)
 
   k3s_config_update_script = <<-EOF
+    set -ex
+    mkdir -p /etc/rancher/k3s
     DATE=`date +%Y-%m-%d_%H-%M-%S`
     if cmp -s /tmp/config.yaml /etc/rancher/k3s/config.yaml; then
       echo "No update required to the config.yaml file"

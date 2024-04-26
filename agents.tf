@@ -130,10 +130,7 @@ resource "null_resource" "install_k3s_on_agents" {
 
   # Install k3s agent
   provisioner "remote-exec" {
-    inline = concat(
-      [local.k3s_config_update_script],
-      local.install_k3s_agent
-    )
+    inline = local.install_k3s_agent
   }
 
   # Start the k3s agent and wait for it to have started
