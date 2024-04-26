@@ -48,6 +48,11 @@ locals {
   common_pre_install_k3s_commands = concat(
     [
       "set -ex",
+      # https://docs.k3s.io/security/hardening-guide
+      "sysctl vm.panic_on_oom=0",
+      "sysctl vm.overcommit_memory=1",
+      "sysctl kernel.panic=10",
+      "sysctl kernel.panic_on_oops=1",
       # prepare the k3s config directory
       "mkdir -p /etc/rancher/k3s",
       # move the config file into place and adjust permissions
