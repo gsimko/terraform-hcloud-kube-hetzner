@@ -33,8 +33,8 @@ data "wireguard_config_document" "config" {
     for_each = merge(module.agents, module.control_planes)
     content {
       public_key  = wireguard_asymmetric_key.key[each.key].public_key
-      endpoint    = "${value.ipv4_address}:51820"
-      allowed_ips = ["${value.private_ipv4_address}/32"]
+      endpoint    = "${each.value.ipv4_address}:51820"
+      allowed_ips = ["${each.value.private_ipv4_address}/32"]
       persistent_keepalive = 25
     }
   }
