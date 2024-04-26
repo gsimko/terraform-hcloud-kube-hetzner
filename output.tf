@@ -66,3 +66,10 @@ output "kubeconfig_data" {
   value       = local.kubeconfig_data
   sensitive   = true
 }
+
+
+output "wireguard_client_config" {
+  description = "Wireguard client config"
+  value       = data.wireguard_config_document.client_config
+  sensitive   = true
+}

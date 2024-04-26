@@ -2,6 +2,9 @@ resource "wireguard_asymmetric_key" "key" {
   for_each = local.nodes
 }
 
+resource "wireguard_asymmetric_key" "client" {
+}
+
 data "wireguard_config_document" "config" {
   for_each = local.nodes
 
@@ -16,6 +19,25 @@ data "wireguard_config_document" "config" {
     "iptables -D OUTPUT ! -o wg0 -m mark ! --mark $(wg show wg0 fwmark) -m addrtype ! --dst-type LOCAL -j REJECT"
   ]
 
+  peer {
+    public_key  = wireguard_asymmetric_key.client.public_key
+    allowed_ips = ["0.0.0.0/0"]
+    persistent_keepalive = 25
+  }
+
+  dynamic peer {
+    for_each = { for k, v in local.nodes: k => v if k != each.key }
+    content {
+      public_key  = wireguard_asymmetric_key.key[peer.key].public_key
+      endpoint    = "${peer.value.ipv4_address}:51820"
+      allowed_ips = ["${peer.value.private_ipv4_address}/32"]
+      persistent_keepalive = 25
+    }
+  }
+}
+
+data "wireguard_config_document" "client_config" {
+  private_key = wireguard_asymmetric_key.client.private_key
   dynamic peer {
     for_each = { for k, v in local.nodes: k => v if k != each.key }
     content {
