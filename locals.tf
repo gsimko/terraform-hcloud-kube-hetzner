@@ -925,8 +925,14 @@ installCRDs: true
 
   # agent_cidr           = "10.0.0.0/16"
   # control_cidr         = "10.1.0.0/16"
-  agent_cidr_ranges  = [for index in range(200) : cidrsubnet("172.16.0.0/16", 16, index)]
-  control_cidr_ranges  = [for index in range(56) : cidrsubnet("172.16.0.0/16", 16, 255 - index)]
+  agent_cidr_ranges  = [
+    for index in range(200)
+    : cidrsubnet("172.16.0.0/16", 8, index)
+  ]
+  control_cidr_ranges  = [
+    for index in range(56)
+    : cidrsubnet("172.16.0.0/16", 8, 255 - index)
+  ]
   # agent_ip_addresses   = [for index in range(length(local.agent_nodes)) : cidrhost(local.agent_cidr, index)]
   # control_ip_addresses = [for index in range(length(local.control_plane_nodes)) : cidrhost(local.control_cidr, index)]
 }
