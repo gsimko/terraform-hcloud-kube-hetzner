@@ -19,32 +19,29 @@ resource "hcloud_load_balancer" "cluster" {
   }
 }
 
-resource "null_resource" "control_plane_wg_gen_key" {
-  for_each = local.control_plane_nodes
+resource "wireguard_asymmetric_key" "key" {
+  for_each = merge(local.control_plane_nodes, local.agent_nodes)
+}
 
-  triggers = {
-    id = module.control_planes[each.key].id
-  }
+data "wireguard_config_document" "config" {
+  for_each = merge(local.control_plane_nodes, local.agent_nodes)
 
-  connection {
-    user           = "root"
-    private_key    = var.ssh_private_key
-    agent_identity = null
-    host           = module.control_planes[each.key].ipv4_address
-    port           = var.ssh_port
-  }
-
-  provisioner "remote-exec" {
-    inline = [
-      "set -ex",
-      "umask 077",
-      "wg genkey | tee /tmp/privatekey | wg pubkey > /tmp/publickey",
-    ]
+  private_key = wireguard_asymmetric_key.key[each.key].private_key
+  listen_port = 51820
+  addresses   = ["${module.control_planes[each.key].private_ipv4_address}/16"]
+  dynamic peer {
+    for_each = merge(module.agents, module.control_planes)
+    content {
+      public_key  = wireguard_asymmetric_key.key[each.key].public_key
+      endpoint    = "${value.ipv4_address}:51820"
+      allowed_ips = ["${value.private_ipv4_address}/32"]
+      persistent_keepalive = 25
+    }
   }
 }
 
-resource "null_resource" "control_add_wg" {
-  for_each = local.control_plane_nodes
+resource "null_resource" "install_wireguard" {
+  for_each = merge(local.control_plane_nodes, local.agent_nodes)
 
   triggers = {
     agent_id = module.control_planes[each.key].id
@@ -59,131 +56,42 @@ resource "null_resource" "control_add_wg" {
   }
 
   provisioner "file" {
-    content     = var.ssh_private_key
-    destination = "/tmp/k"
+    content     = data.wireguard_config_document.config[each.key]
+    destination = "/etc/wireguard/wg0.conf"
   }
 
   provisioner "remote-exec" {
-    inline = flatten(
-      [
-        "set -ex",
-        "chmod 600 /tmp/k",
-        "ip link add dev wg0 type wireguard || echo wg0 already exists",
-
-        "echo [Interface] > /tmp/wgconfig.conf",
-        "echo PrivateKey = $(cat /tmp/privatekey) >> /tmp/wgconfig.conf",
-        "echo ListenPort = 51820 >> /tmp/wgconfig.conf",
-        [for key, value in module.agents : [
-          "echo [Peer] >> /tmp/wgconfig.conf",
-          "echo PublicKey = $(ssh root@${value.ipv4_address} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i /tmp/k 'cat /tmp/publickey') >> /tmp/wgconfig.conf",
-          "echo Endpoint = ${value.ipv4_address}:51820 >> /tmp/wgconfig.conf",
-          "echo AllowedIPs = ${value.private_ipv4_address}/32 >> /tmp/wgconfig.conf",
-          "echo PersistentKeepalive = 25 >> /tmp/wgconfig.conf",
-        ]],
-        [for key, value in module.control_planes : [
-          "echo [Peer] >> /tmp/wgconfig.conf",
-          "echo PublicKey = $(ssh root@${value.ipv4_address} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i /tmp/k 'cat /tmp/publickey') >> /tmp/wgconfig.conf",
-          "echo Endpoint = ${value.ipv4_address}:51820 >> /tmp/wgconfig.conf",
-          "echo AllowedIPs = ${value.private_ipv4_address}/32 >> /tmp/wgconfig.conf",
-          "echo PersistentKeepalive = 25 >> /tmp/wgconfig.conf",
-        ]],
-        "ip address replace dev wg0 ${module.control_planes[each.key].private_ipv4_address}/16",
-        "wg setconf wg0 /tmp/wgconfig.conf",
-        "ip link set up dev wg0",
-        "rm /tmp/k",
-      ]
-    )
+    inline = ["systemctl restart wg-quick@wg0'"]
   }
+#   provisioner "file" {
+#     content     = var.ssh_private_key
+#     destination = "/tmp/k"
+#   }
 
-  depends_on = [
-    null_resource.control_plane_wg_gen_key,
-  ]
-}
-
-resource "null_resource" "first_control_plane" {
-  connection {
-    user           = "root"
-    private_key    = var.ssh_private_key
-    agent_identity = local.ssh_agent_identity
-    host           = module.control_planes[keys(module.control_planes)[0]].ipv4_address
-    port           = var.ssh_port
-  }
-
-  # Generating k3s master config file
-  provisioner "file" {
-    content = yamlencode(
-      merge(
-        {
-          node-name                   = module.control_planes[keys(module.control_planes)[0]].name
-          token                       = local.k3s_token
-          cluster-init                = true
-          disable-cloud-controller    = true
-          disable-kube-proxy          = var.disable_kube_proxy
-          disable                     = local.disable_extras
-          kubelet-arg                 = local.kubelet_arg
-          kube-controller-manager-arg = local.kube_controller_manager_arg
-          flannel-iface               = local.flannel_iface
-          # node-ip                     = var.use_private_network ? module.control_planes[keys(module.control_planes)[0]].private_ipv4_address : module.control_planes[keys(module.control_planes)[0]].ipv4_address
-          # advertise-address           = var.use_private_network ? module.control_planes[keys(module.control_planes)[0]].private_ipv4_address : module.control_planes[keys(module.control_planes)[0]].ipv4_address
-          node-ip                     = module.control_planes[keys(module.control_planes)[0]].ipv4_address
-          advertise-address           = module.control_planes[keys(module.control_planes)[0]].ipv4_address
-          node-taint                  = local.control_plane_nodes[keys(module.control_planes)[0]].taints
-          node-label                  = local.control_plane_nodes[keys(module.control_planes)[0]].labels
-          cluster-cidr                = var.cluster_ipv4_cidr
-          service-cidr                = var.service_ipv4_cidr
-          cluster-dns                 = var.cluster_dns_ipv4
-        },
-        lookup(local.cni_k3s_settings, var.cni_plugin, {}),
-        var.use_control_plane_lb ? {
-          tls-san = concat([hcloud_load_balancer.control_plane.*.ipv4[0], hcloud_load_balancer_network.control_plane.*.ip[0]], var.additional_tls_sans)
-          } : {
-          tls-san = concat([module.control_planes[keys(module.control_planes)[0]].ipv4_address], var.additional_tls_sans)
-        },
-        local.etcd_s3_snapshots,
-        var.control_planes_custom_config,
-        (local.control_plane_nodes[keys(module.control_planes)[0]].selinux == true ? { selinux = true } : {})
-      )
-    )
-
-    destination = "/tmp/config.yaml"
-  }
-
-  # Install k3s server
-  provisioner "remote-exec" {
-    inline = local.install_k3s_server
-  }
-
-  # Upon reboot start k3s and wait for it to be ready to receive commands
-  provisioner "remote-exec" {
-    inline = [
-      "systemctl start k3s",
-      # prepare the needed directories
-      "mkdir -p /var/post_install /var/user_kustomize",
-      # wait for k3s to become ready
-      <<-EOT
-      timeout 120 bash <<EOF
-        until systemctl status k3s > /dev/null; do
-          systemctl start k3s
-          echo "Waiting for the k3s server to start..."
-          sleep 2
-        done
-        until [ -e /etc/rancher/k3s/k3s.yaml ]; do
-          echo "Waiting for kubectl config..."
-          sleep 2
-        done
-        until [[ "\$(kubectl get --raw='/readyz' 2> /dev/null)" == "ok" ]]; do
-          echo "Waiting for the cluster to become ready..."
-          sleep 2
-        done
-      EOF
-      EOT
-    ]
-  }
-
-  depends_on = [
-    hcloud_network_subnet.control_plane,
-    null_resource.control_add_wg,
-  ]
+#   provisioner "file" {
+#     content = join("\n", flatten([
+#       "[Interface]",
+#       "PrivateKey = $(cat /tmp/privatekey)",
+#       "ListenPort = 51820",
+#       "Address = ${module.control_planes[each.key].private_ipv4_address}/16",
+#       "SaveConfig = true",
+#       [for key, value in module.agents : [
+#         "[Peer]",
+#         "PublicKey = $(ssh root@${value.ipv4_address} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i /tmp/k 'cat /tmp/publickey')",
+#         "Endpoint = ${value.ipv4_address}:51820",
+#         "AllowedIPs = ${value.private_ipv4_address}/32",
+#         "PersistentKeepalive = 25",
+#       ]],
+#       [for key, value in module.control_planes : [
+#         "[Peer]",
+#         "PublicKey = $(ssh root@${value.ipv4_address} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i /tmp/k 'cat /tmp/publickey')",
+#         "Endpoint = ${value.ipv4_address}:51820",
+#         "AllowedIPs = ${value.private_ipv4_address}/32",
+#         "PersistentKeepalive = 25",
+#       ]],
+#     ]))
+#     destination = "/etc/wireguard/wg0.conf"
+#   }
 }
 
 # Needed for rancher setup
@@ -394,8 +302,7 @@ resource "null_resource" "kustomization" {
         done
       EOF
       EOT
-      ]
-      ,
+      ],
 
       [
         # Ready, set, go for the kustomization
@@ -420,7 +327,7 @@ resource "null_resource" "kustomization" {
 
   depends_on = [
     hcloud_load_balancer.cluster,
-    null_resource.control_planes,
+    null_resource.install_k3s_on_control_planes,
     random_password.rancher_bootstrap,
     hcloud_volume.longhorn_volume
   ]

@@ -8,13 +8,11 @@ data "remote_file" "kubeconfig" {
   }
   path = "/etc/rancher/k3s/k3s.yaml"
 
-  depends_on = [null_resource.control_planes[0]]
+  depends_on = [null_resource.install_k3s_on_control_planes[0]]
 }
 
 locals {
-  kubeconfig_server_address = var.use_control_plane_lb ? hcloud_load_balancer.control_plane.*.ipv4[0] : (
-    can(module.control_planes[keys(module.control_planes)[0]].ipv4_address) ? module.control_planes[keys(module.control_planes)[0]].ipv4_address : "unknown"
-  )
+  kubeconfig_server_address = can(module.control_planes[keys(module.control_planes)[0]].ipv4_address) ? module.control_planes[keys(module.control_planes)[0]].ipv4_address : "unknown"
   kubeconfig_external = replace(replace(data.remote_file.kubeconfig.content, "127.0.0.1", local.kubeconfig_server_address), "default", var.cluster_name)
   kubeconfig_parsed   = yamldecode(local.kubeconfig_external)
   kubeconfig_data = {

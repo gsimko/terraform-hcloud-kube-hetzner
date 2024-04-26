@@ -99,21 +99,6 @@ variable "dns_servers" {
   description = "IP Addresses to use for the DNS Servers, set to an empty list to use the ones provided by Hetzner"
 }
 
-variable "automatically_upgrade_os" {
-  type    = bool
-  default = true
-}
-
-variable "k3s_registries" {
-  default = ""
-  type    = string
-}
-
-variable "k3s_registries_update_script" {
-  default = ""
-  type    = string
-}
-
 variable "cloudinit_write_files_common" {
   default = ""
   type    = string
@@ -122,16 +107,6 @@ variable "cloudinit_write_files_common" {
 variable "cloudinit_runcmd_common" {
   default = ""
   type    = string
-}
-
-variable "swap_size" {
-  default = ""
-  type    = string
-
-  validation {
-    condition     = can(regex("^$|[1-9][0-9]{0,3}(G|M)$", var.swap_size))
-    error_message = "Invalid swap size. Examples: 512M, 1G"
-  }
 }
 
 variable "zram_size" {

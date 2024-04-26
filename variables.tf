@@ -179,7 +179,6 @@ variable "control_plane_nodepools" {
     labels                     = list(string)
     taints                     = list(string)
     count                      = number
-    swap_size                  = optional(string, "")
     zram_size                  = optional(string, "")
     kubelet_args               = optional(list(string), ["kube-reserved=cpu=250m,memory=1500Mi,ephemeral-storage=1Gi", "system-reserved=cpu=250m,memory=300Mi"])
     selinux                    = optional(bool, true)
@@ -210,7 +209,6 @@ variable "agent_nodepools" {
     labels                     = list(string)
     taints                     = list(string)
     longhorn_volume_size       = optional(number)
-    swap_size                  = optional(string, "")
     zram_size                  = optional(string, "")
     kubelet_args               = optional(list(string), ["kube-reserved=cpu=50m,memory=300Mi,ephemeral-storage=1Gi", "system-reserved=cpu=250m,memory=300Mi"])
     selinux                    = optional(bool, true)
@@ -225,7 +223,6 @@ variable "agent_nodepools" {
       labels                     = optional(list(string))
       taints                     = optional(list(string))
       longhorn_volume_size       = optional(number)
-      swap_size                  = optional(string, "")
       zram_size                  = optional(string, "")
       kubelet_args               = optional(list(string), ["kube-reserved=cpu=50m,memory=300Mi,ephemeral-storage=1Gi", "system-reserved=cpu=250m,memory=300Mi"])
       selinux                    = optional(bool, true)
@@ -812,24 +809,6 @@ variable "block_icmp_ping_in" {
   description = "Block entering ICMP ping."
 }
 
-variable "use_control_plane_lb" {
-  type        = bool
-  default     = false
-  description = "When this is enabled, rather than the first node, all external traffic will be routed via a control-plane loadbalancer, allowing for high availability."
-}
-
-variable "control_plane_lb_type" {
-  type        = string
-  default     = "lb11"
-  description = "The type of load balancer to use for the control plane load balancer. Defaults to lb11, which is the cheapest one."
-}
-
-variable "control_plane_lb_enable_public_interface" {
-  type        = bool
-  default     = true
-  description = "Enable or disable public interface for the control plane load balancer . Defaults to true."
-}
-
 variable "dns_servers" {
   type = list(string)
 
@@ -917,12 +896,6 @@ variable "agent_nodes_custom_config" {
   type        = any
   default     = {}
   description = "Custom agent nodes configuration."
-}
-
-variable "k3s_registries" {
-  description = "K3S registries.yml contents. It used to access private docker registries."
-  default     = " "
-  type        = string
 }
 
 variable "additional_tls_sans" {

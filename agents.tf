@@ -20,119 +20,85 @@ module "agents" {
   location                     = each.value.location
   server_type                  = each.value.server_type
   backups                      = each.value.backups
-  ipv4_subnet_id               = var.use_private_network ? hcloud_network_subnet.agent[each.value.nodepool_index].id : null
+  ipv4_subnet_id               = null
   dns_servers                  = var.dns_servers
-  k3s_registries               = var.k3s_registries
-  k3s_registries_update_script = local.k3s_registries_update_script
   cloudinit_write_files_common = local.cloudinit_write_files_common
   cloudinit_runcmd_common      = local.cloudinit_runcmd_common
-  swap_size                    = each.value.swap_size
   use_private_network          = var.use_private_network
 
-  private_ipv4 = var.use_private_network ? cidrhost(hcloud_network_subnet.agent[each.value.nodepool_index].ip_range, each.value.index + 101) : cidrhost(local.agent_cidr_ranges[each.value.nodepool_index], each.value.index + 1)
+  private_ipv4 = cidrhost(local.agent_cidr_ranges[each.value.nodepool_index], each.value.index + 1)
 
   labels = merge(local.labels, local.labels_agent_node)
 
-  automatically_upgrade_os = var.automatically_upgrade_os
-
   depends_on = [
-    hcloud_network_subnet.agent,
     hcloud_placement_group.agent
   ]
 }
 
-resource "null_resource" "agents_wg_gen_key" {
-  for_each = local.agent_nodes
+# resource "null_resource" "agents_add_wg" {
+#   for_each = local.agent_nodes
 
-  triggers = {
-    agent_id = module.agents[each.key].id
-  }
+#   triggers = {
+#     agent_id = module.agents[each.key].id
+#   }
 
-  connection {
-    user           = "root"
-    private_key    = var.ssh_private_key
-    agent_identity = null
-    host           = module.agents[each.key].ipv4_address
-    port           = var.ssh_port
-  }
+#   connection {
+#     user           = "root"
+#     private_key    = var.ssh_private_key
+#     agent_identity = null
+#     host           = module.agents[each.key].ipv4_address
+#     port           = var.ssh_port
+#   }
 
-  provisioner "remote-exec" {
-    inline = [
-      "set -ex",
-      "umask 077",
-      "wg genkey | tee /tmp/privatekey | wg pubkey > /tmp/publickey",
-    ]
-  }
-}
+#   provisioner "file" {
+#     content     = var.ssh_private_key
+#     destination = "/tmp/k"
+#   }
 
-resource "null_resource" "agents_add_wg" {
-  for_each = local.agent_nodes
+#   provisioner "remote-exec" {
+#     inline = flatten(
+#       [
+#         "set -ex",
+#         "chmod 600 /tmp/k",
+#         "ip link add dev wg0 type wireguard || echo wg0 already exists",
 
-  triggers = {
-    agent_id = module.agents[each.key].id
-  }
-
-  connection {
-    user           = "root"
-    private_key    = var.ssh_private_key
-    agent_identity = null
-    host           = module.agents[each.key].ipv4_address
-    port           = var.ssh_port
-  }
-
-  provisioner "file" {
-    content     = var.ssh_private_key
-    destination = "/tmp/k"
-  }
-
-  provisioner "remote-exec" {
-    inline = flatten(
-      [
-        "set -ex",
-        "chmod 600 /tmp/k",
-        "ip link add dev wg0 type wireguard || echo wg0 already exists",
-
-        "echo [Interface] > /tmp/wgconfig.conf",
-        "echo PrivateKey = $(cat /tmp/privatekey) >> /tmp/wgconfig.conf",
-        "echo ListenPort = 51820 >> /tmp/wgconfig.conf",
-        [for key, value in module.agents : [
-          "echo [Peer] >> /tmp/wgconfig.conf",
-          "echo PublicKey = $(ssh root@${value.ipv4_address} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i /tmp/k 'cat /tmp/publickey') >> /tmp/wgconfig.conf",
-          "echo Endpoint = ${value.ipv4_address}:51820 >> /tmp/wgconfig.conf",
-          "echo AllowedIPs = ${value.private_ipv4_address}/32 >> /tmp/wgconfig.conf",
-          "echo PersistentKeepalive = 25 >> /tmp/wgconfig.conf",
-        ]],
-        [for key, value in module.control_planes : [
-          "echo [Peer] >> /tmp/wgconfig.conf",
-          "echo PublicKey = $(ssh root@${value.ipv4_address} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i /tmp/k 'cat /tmp/publickey') >> /tmp/wgconfig.conf",
-          "echo Endpoint = ${value.ipv4_address}:51820 >> /tmp/wgconfig.conf",
-          "echo AllowedIPs = ${value.private_ipv4_address}/32 >> /tmp/wgconfig.conf",
-          "echo PersistentKeepalive = 25 >> /tmp/wgconfig.conf",
-        ]],
-        "ip address replace dev wg0 ${module.agents[each.key].private_ipv4_address}/16",
-        "wg setconf wg0 /tmp/wgconfig.conf",
-        "ip link set up dev wg0",
-        "rm /tmp/k",
-      ]
-    )
-  }
-
-  depends_on = [ 
-    null_resource.agents_wg_gen_key,
-  ]
-}
+#         "echo [Interface] > /tmp/wgconfig.conf",
+#         "echo PrivateKey = $(cat /tmp/privatekey) >> /tmp/wgconfig.conf",
+#         "echo ListenPort = 51820 >> /tmp/wgconfig.conf",
+#         [for key, value in module.agents : [
+#           "echo [Peer] >> /tmp/wgconfig.conf",
+#           "echo PublicKey = $(ssh root@${value.ipv4_address} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i /tmp/k 'cat /tmp/publickey') >> /tmp/wgconfig.conf",
+#           "echo Endpoint = ${value.ipv4_address}:51820 >> /tmp/wgconfig.conf",
+#           "echo AllowedIPs = ${value.private_ipv4_address}/32 >> /tmp/wgconfig.conf",
+#           "echo PersistentKeepalive = 25 >> /tmp/wgconfig.conf",
+#         ]],
+#         [for key, value in module.control_planes : [
+#           "echo [Peer] >> /tmp/wgconfig.conf",
+#           "echo PublicKey = $(ssh root@${value.ipv4_address} -o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -i /tmp/k 'cat /tmp/publickey') >> /tmp/wgconfig.conf",
+#           "echo Endpoint = ${value.ipv4_address}:51820 >> /tmp/wgconfig.conf",
+#           "echo AllowedIPs = ${value.private_ipv4_address}/32 >> /tmp/wgconfig.conf",
+#           "echo PersistentKeepalive = 25 >> /tmp/wgconfig.conf",
+#         ]],
+#         "ip address replace dev wg0 ${module.agents[each.key].private_ipv4_address}/16",
+#         "wg setconf wg0 /tmp/wgconfig.conf",
+#         "ip link set up dev wg0",
+#         "rm /tmp/k",
+#       ]
+#     )
+#   }
+# }
 
 locals {
   k3s-agent-config = { for k, v in local.agent_nodes : k => merge(
     {
       node-name     = module.agents[k].name
-      # server        = "https://${var.use_control_plane_lb ? hcloud_load_balancer_network.control_plane.*.ip[0] : var.use_private_network ? module.control_planes[keys(module.control_planes)[0]].private_ipv4_address : module.control_planes[keys(module.control_planes)[0]].ipv4_address}:6443"
-      server        = "https://${var.use_control_plane_lb ? hcloud_load_balancer_network.control_plane.*.ip[0] : module.control_planes[keys(module.control_planes)[0]].private_ipv4_address}:6443"
+      server        = "https://${module.control_planes[keys(module.control_planes)[0]].private_ipv4_address}:6443"
       token         = local.k3s_token
       kubelet-arg   = concat(local.kubelet_arg, var.k3s_global_kubelet_args, var.k3s_agent_kubelet_args, v.kubelet_args)
       flannel-iface = local.flannel_iface
       # node-ip       = var.use_private_network ? module.agents[k].private_ipv4_address : module.agents[k].ipv4_address
-      node-ip       = module.agents[k].ipv4_address
+      node-external-ip = module.agents[k].ipv4_address
+      node-ip          = module.agents[k].private_ipv4_address
       node-label    = v.labels
       node-taint    = v.taints
     },
@@ -141,7 +107,7 @@ locals {
   ) }
 }
 
-resource "null_resource" "agent_config" {
+resource "null_resource" "install_k3s_on_agents" {
   for_each = local.agent_nodes
 
   triggers = {
@@ -163,29 +129,12 @@ resource "null_resource" "agent_config" {
     destination = "/tmp/config.yaml"
   }
 
-  provisioner "remote-exec" {
-    inline = [local.k3s_config_update_script]
-  }
-}
-
-resource "null_resource" "agents" {
-  for_each = local.agent_nodes
-
-  triggers = {
-    agent_id = module.agents[each.key].id
-  }
-
-  connection {
-    user           = "root"
-    private_key    = var.ssh_private_key
-    agent_identity = local.ssh_agent_identity
-    host           = module.agents[each.key].ipv4_address
-    port           = var.ssh_port
-  }
-
   # Install k3s agent
   provisioner "remote-exec" {
-    inline = local.install_k3s_agent
+    inline = concat(
+      [local.k3s_config_update_script],
+      local.install_k3s_agent
+    )
   }
 
   # Start the k3s agent and wait for it to have started
@@ -203,13 +152,6 @@ resource "null_resource" "agents" {
       EOT
     ])
   }
-
-  depends_on = [
-    null_resource.agents_add_wg,
-    null_resource.first_control_plane,
-    null_resource.agent_config,
-    hcloud_network_subnet.agent
-  ]
 }
 
 resource "hcloud_volume" "longhorn_volume" {
@@ -235,7 +177,6 @@ resource "null_resource" "configure_longhorn_volume" {
     agent_id = module.agents[each.key].id
   }
 
-  # Start the k3s agent and wait for it to have started
   provisioner "remote-exec" {
     inline = [
       "mkdir /var/longhorn >/dev/null 2>&1",
@@ -255,65 +196,5 @@ resource "null_resource" "configure_longhorn_volume" {
 
   depends_on = [
     hcloud_volume.longhorn_volume
-  ]
-}
-
-resource "hcloud_floating_ip" "agents" {
-  for_each = { for k, v in local.agent_nodes : k => v if coalesce(lookup(v, "floating_ip"), false) }
-
-  type              = "ipv4"
-  labels            = local.labels
-  home_location     = each.value.location
-  delete_protection = var.enable_delete_protection.floating_ip
-}
-
-resource "hcloud_floating_ip_assignment" "agents" {
-  for_each = { for k, v in local.agent_nodes : k => v if coalesce(lookup(v, "floating_ip"), false) }
-
-  floating_ip_id = hcloud_floating_ip.agents[each.key].id
-  server_id      = module.agents[each.key].id
-
-  depends_on = [
-    null_resource.agents
-  ]
-}
-
-resource "null_resource" "configure_floating_ip" {
-  for_each = { for k, v in local.agent_nodes : k => v if coalesce(lookup(v, "floating_ip"), false) }
-
-  triggers = {
-    agent_id       = module.agents[each.key].id
-    floating_ip_id = hcloud_floating_ip.agents[each.key].id
-  }
-
-  provisioner "remote-exec" {
-    inline = [
-      # Reconfigure eth0:
-      #  - add floating_ip as first and other IP as second address
-      #  - add 172.31.1.1 as default gateway (In the Hetzner Cloud, the
-      #    special private IP address 172.31.1.1 is the default
-      #    gateway for the public network)
-      # The configuration is stored in file /etc/NetworkManager/system-connections/cloud-init-eth0.nmconnection
-      <<-EOT
-      NM_CONNECTION=$(nmcli -g GENERAL.CONNECTION device show eth0)
-      nmcli connection modify "$NM_CONNECTION" \
-        ipv4.method manual \
-        ipv4.addresses ${hcloud_floating_ip.agents[each.key].ip_address}/32,${module.agents[each.key].ipv4_address}/32 gw4 172.31.1.1 \
-        ipv4.route-metric 100 \
-      && nmcli connection up "$NM_CONNECTION"
-      EOT
-    ]
-  }
-
-  connection {
-    user           = "root"
-    private_key    = var.ssh_private_key
-    agent_identity = local.ssh_agent_identity
-    host           = module.agents[each.key].ipv4_address
-    port           = var.ssh_port
-  }
-
-  depends_on = [
-    hcloud_floating_ip_assignment.agents
   ]
 }

@@ -17,5 +17,9 @@ terraform {
       source  = "tenstad/remote"
       version = ">= 0.1.2"
     }
+    wireguard = {
+      source  = "OJFord/wireguard"
+      version = ">= 0.2.2"
+    }
   }
 }
