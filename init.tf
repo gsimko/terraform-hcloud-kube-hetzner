@@ -8,6 +8,13 @@ data "wireguard_config_document" "config" {
   private_key = wireguard_asymmetric_key.key[each.key].private_key
   listen_port = 51820
   addresses   = ["${each.value.private_ipv4_address}/16"]
+  post_up = [
+    "iptables -I OUTPUT ! -o wg0 -m mark ! --mark $(wg show wg0 fwmark) -m addrtype ! --dst-type LOCAL -j REJECT"
+  ]
+  pre_down = [
+    "iptables -D OUTPUT ! -o wg0 -m mark ! --mark $(wg show wg0 fwmark) -m addrtype ! --dst-type LOCAL -j REJECT"
+  ]
+
   dynamic peer {
     for_each = { for k, v in local.nodes: k => v if k != each.key }
     content {

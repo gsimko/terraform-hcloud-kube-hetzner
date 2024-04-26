@@ -284,15 +284,15 @@ locals {
         source_ips  = ["0.0.0.0/0", "::/0"]
       },
     ],
-    var.firewall_kube_api_source == null ? [] : [
-      {
-        description = "Allow Incoming Requests to Kube API Server"
-        direction   = "in"
-        protocol    = "tcp"
-        port        = "6443"
-        source_ips  = var.firewall_kube_api_source
-      }
-    ],
+    # var.firewall_kube_api_source == null ? [] : [
+    #   {
+    #     description = "Allow Incoming Requests to Kube API Server"
+    #     direction   = "in"
+    #     protocol    = "tcp"
+    #     port        = "6443"
+    #     source_ips  = var.firewall_kube_api_source
+    #   }
+    # ],
     !var.restrict_outbound_traffic ? [] : [
       # Allow basic out traffic
       # ICMP to ping outside services
@@ -321,27 +321,27 @@ locals {
       },
 
       # HTTP(s)
-      {
-        description     = "Allow Outbound HTTP Requests"
-        direction       = "out"
-        protocol        = "tcp"
-        port            = "80"
-        destination_ips = ["0.0.0.0/0", "::/0"]
-      },
-      {
-        description     = "Allow Outbound HTTPS Requests"
-        direction       = "out"
-        protocol        = "tcp"
-        port            = "443"
-        destination_ips = ["0.0.0.0/0", "::/0"]
-      },
-      {
-        description = "Allow Outbound Requests to Kube API Server"
-        direction   = "out"
-        protocol    = "tcp"
-        port        = "6443"
-        destination_ips = ["0.0.0.0/0", "::/0"]
-      },
+      # {
+      #   description     = "Allow Outbound HTTP Requests"
+      #   direction       = "out"
+      #   protocol        = "tcp"
+      #   port            = "80"
+      #   destination_ips = ["0.0.0.0/0", "::/0"]
+      # },
+      # {
+      #   description     = "Allow Outbound HTTPS Requests"
+      #   direction       = "out"
+      #   protocol        = "tcp"
+      #   port            = "443"
+      #   destination_ips = ["0.0.0.0/0", "::/0"]
+      # },
+      # {
+      #   description = "Allow Outbound Requests to Kube API Server"
+      #   direction   = "out"
+      #   protocol    = "tcp"
+      #   port        = "6443"
+      #   destination_ips = ["0.0.0.0/0", "::/0"]
+      # },
       {
         description = "Allow Outbound Requests to ssh"
         direction   = "out"
