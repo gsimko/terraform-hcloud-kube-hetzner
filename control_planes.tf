@@ -54,7 +54,7 @@ locals {
       node-external-ip            = module.control_planes[k].ipv4_address
       node-ip                     = module.control_planes[k].private_ipv4_address
       advertise-address           = module.control_planes[k].private_ipv4_address
-      bind-address                = module.control_planes[k].ipv4_address
+      bind-address                = module.control_planes[k].private_ipv4_address
       node-label                  = v.labels
       node-taint                  = v.taints
       selinux                     = true
