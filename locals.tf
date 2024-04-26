@@ -912,10 +912,6 @@ installCRDs: true
     - [sed, '-i', 's/NUMBER_LIMIT="2-10"/NUMBER_LIMIT="4"/g', /etc/snapper/configs/root]
     - [sed, '-i', 's/NUMBER_LIMIT_IMPORTANT="4-10"/NUMBER_LIMIT_IMPORTANT="3"/g', /etc/snapper/configs/root]
 
-    # Generate Wireguard keys
-    - [wg genkey | tee /tmp/privatekey | wg pubkey > /tmp/publickey]
-    - [chmod, '600', '/tmp/privatekey']
-    - [chmod, '600', '/tmp/publickey']
     # Start wg-quick service on wg0
     - [systemctl, 'enable wg-quick@wg0.service']
     - [systemctl, 'daemon-reload']

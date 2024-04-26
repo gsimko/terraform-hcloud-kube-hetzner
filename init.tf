@@ -9,11 +9,11 @@ data "wireguard_config_document" "config" {
   listen_port = 51820
   addresses   = ["${each.value.private_ipv4_address}/16"]
   dynamic peer {
-    for_each = local.nodes
+    for_each = { for k, v in local.nodes: k => v if k != each.key }
     content {
-      public_key  = wireguard_asymmetric_key.key[each.key].public_key
-      endpoint    = "${each.value.ipv4_address}:51820"
-      allowed_ips = ["${each.value.private_ipv4_address}/32"]
+      public_key  = wireguard_asymmetric_key.key[peer.key].public_key
+      endpoint    = "${peer.value.ipv4_address}:51820"
+      allowed_ips = ["${peer.value.private_ipv4_address}/32"]
       persistent_keepalive = 25
     }
   }
@@ -40,7 +40,10 @@ resource "null_resource" "install_wireguard" {
   }
 
   provisioner "remote-exec" {
-    inline = ["systemctl restart wg-quick@wg0"]
+    inline = [
+      "systemctl enable wg-quick@wg0.service",
+      "systemctl reload-or-restart wg-quick@wg0.service",
+    ]
   }
 #   provisioner "file" {
 #     content     = var.ssh_private_key
