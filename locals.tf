@@ -215,6 +215,8 @@ locals {
     local.agent_nodes_from_maps_for_counts,
   )
 
+  nodes = merge(module.control_planes, module.agents)
+
   use_existing_network = length(var.existing_network_id) > 0
 
   # The first two subnets are respectively the default subnet 10.0.0.0/16 use for potientially anything and 10.1.0.0/16 used for control plane nodes.

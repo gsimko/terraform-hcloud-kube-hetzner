@@ -1,15 +1,15 @@
 resource "wireguard_asymmetric_key" "key" {
-  for_each = merge(module.control_planes, module.agents)
+  for_each = local.nodes
 }
 
 data "wireguard_config_document" "config" {
-  for_each = merge(module.agents, module.control_planes)
+  for_each = local.nodes
 
   private_key = wireguard_asymmetric_key.key[each.key].private_key
   listen_port = 51820
   addresses   = ["${each.value.private_ipv4_address}/16"]
   dynamic peer {
-    for_each = merge(module.agents, module.control_planes)
+    for_each = local.nodes
     content {
       public_key  = wireguard_asymmetric_key.key[each.key].public_key
       endpoint    = "${each.value.ipv4_address}:51820"
@@ -20,17 +20,17 @@ data "wireguard_config_document" "config" {
 }
 
 resource "null_resource" "install_wireguard" {
-  for_each = merge(local.control_plane_nodes, local.agent_nodes)
+  for_each = local.nodes
 
   triggers = {
-    agent_id = module.control_planes[each.key].id
+    agent_id = each.value.id
   }
 
   connection {
     user           = "root"
     private_key    = var.ssh_private_key
     agent_identity = null
-    host           = module.control_planes[each.key].ipv4_address
+    host           = each.value.ipv4_address
     port           = var.ssh_port
   }
 
