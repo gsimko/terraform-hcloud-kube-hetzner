@@ -39,7 +39,7 @@ data "wireguard_config_document" "config" {
 data "wireguard_config_document" "client_config" {
   private_key = wireguard_asymmetric_key.client.private_key
   dynamic peer {
-    for_each = { for k, v in local.nodes: k => v if k != each.key }
+    for_each = { for k, v in local.nodes: k => v }
     content {
       public_key  = wireguard_asymmetric_key.key[peer.key].public_key
       endpoint    = "${peer.value.ipv4_address}:51820"
