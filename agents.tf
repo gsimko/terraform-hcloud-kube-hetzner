@@ -152,6 +152,10 @@ resource "null_resource" "install_k3s_on_agents" {
       EOT
     ])
   }
+
+  depends_on = [
+    null_resource.install_wireguard,
+  ]
 }
 
 resource "hcloud_volume" "longhorn_volume" {

@@ -1,24 +1,3 @@
-resource "hcloud_load_balancer" "cluster" {
-  count = local.has_external_load_balancer ? 0 : 1
-  name  = local.load_balancer_name
-
-  load_balancer_type = var.load_balancer_type
-  location           = var.load_balancer_location
-  labels             = local.labels
-  delete_protection  = var.enable_delete_protection.load_balancer
-
-  algorithm {
-    type = var.load_balancer_algorithm_type
-  }
-
-  lifecycle {
-    ignore_changes = [
-      # Ignore changes to hcloud-ccm/service-uid label that is managed by the CCM.
-      labels["hcloud-ccm/service-uid"],
-    ]
-  }
-}
-
 resource "wireguard_asymmetric_key" "key" {
   for_each = merge(module.control_planes, module.agents)
 }
@@ -319,7 +298,6 @@ resource "null_resource" "kustomization" {
   }
 
   depends_on = [
-    hcloud_load_balancer.cluster,
     null_resource.install_k3s_on_control_planes,
     hcloud_volume.longhorn_volume
   ]

@@ -118,4 +118,8 @@ resource "null_resource" "install_k3s_on_control_planes" {
       EOT
     ]
   }
+
+  depends_on = [
+    null_resource.install_wireguard,
+  ]
 }
