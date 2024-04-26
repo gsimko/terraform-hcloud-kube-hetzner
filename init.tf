@@ -20,15 +20,15 @@ resource "hcloud_load_balancer" "cluster" {
 }
 
 resource "wireguard_asymmetric_key" "key" {
-  for_each = merge(local.control_plane_nodes, local.agent_nodes)
+  for_each = merge(module.control_planes, module.agents)
 }
 
 data "wireguard_config_document" "config" {
-  for_each = merge(local.control_plane_nodes, local.agent_nodes)
+  for_each = merge(module.agents, module.control_planes)
 
   private_key = wireguard_asymmetric_key.key[each.key].private_key
   listen_port = 51820
-  addresses   = ["${module.control_planes[each.key].private_ipv4_address}/16"]
+  addresses   = ["${each.value.private_ipv4_address}/16"]
   dynamic peer {
     for_each = merge(module.agents, module.control_planes)
     content {
