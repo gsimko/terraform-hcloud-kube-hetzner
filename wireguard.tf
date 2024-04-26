@@ -12,12 +12,12 @@ data "wireguard_config_document" "config" {
   listen_port = 51820
   firewall_mark = "0x6819348"
   addresses   = ["${each.value.private_ipv4_address}/16"]
-  post_up = [
-    "iptables -I OUTPUT ! -o wg0 -m mark ! --mark $(wg show wg0 fwmark) -m addrtype ! --dst-type LOCAL -j REJECT"
-  ]
-  pre_down = [
-    "iptables -D OUTPUT ! -o wg0 -m mark ! --mark $(wg show wg0 fwmark) -m addrtype ! --dst-type LOCAL -j REJECT"
-  ]
+  # post_up = [
+  #   "iptables -I OUTPUT ! -o wg0 -m mark ! --mark $(wg show wg0 fwmark) -m addrtype ! --dst-type LOCAL -j REJECT"
+  # ]
+  # pre_down = [
+  #   "iptables -D OUTPUT ! -o wg0 -m mark ! --mark $(wg show wg0 fwmark) -m addrtype ! --dst-type LOCAL -j REJECT"
+  # ]
 
   peer {
     public_key  = wireguard_asymmetric_key.client.public_key
