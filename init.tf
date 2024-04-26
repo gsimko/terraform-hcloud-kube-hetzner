@@ -56,7 +56,7 @@ resource "null_resource" "install_wireguard" {
   }
 
   provisioner "file" {
-    content     = data.wireguard_config_document.config[each.key]
+    content     = data.wireguard_config_document.config[each.key].conf
     destination = "/etc/wireguard/wg0.conf"
   }
 
