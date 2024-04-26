@@ -61,7 +61,7 @@ resource "null_resource" "install_wireguard" {
   }
 
   provisioner "remote-exec" {
-    inline = ["systemctl restart wg-quick@wg0'"]
+    inline = ["systemctl restart wg-quick@wg0"]
   }
 #   provisioner "file" {
 #     content     = var.ssh_private_key
