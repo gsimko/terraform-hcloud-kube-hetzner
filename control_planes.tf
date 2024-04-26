@@ -63,6 +63,10 @@ locals {
       cluster-dns                 = var.cluster_dns_ipv4
       write-kubeconfig-mode       = "0644" # needed for import into rancher
       tls-san = concat([module.control_planes[k].ipv4_address], var.additional_tls_sans)
+      listen-peer-urls = ["https://127.0.0.1:2380", "${module.control_planes[k].private_ipv4_address}:2380"]
+      listen-client-urls = ["https://127.0.0.1:2379", "${module.control_planes[k].private_ipv4_address}:2379"]
+      advertise-client-urls = ["${module.control_planes[k].private_ipv4_address}:2379"]
+      initial-advertise-peer-urls = ["${module.control_planes[k].private_ipv4_address}:2380"]
     },
     lookup(local.cni_k3s_settings, var.cni_plugin, {}),
     local.etcd_s3_snapshots,
