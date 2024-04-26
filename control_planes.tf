@@ -52,7 +52,7 @@ locals {
       kube-controller-manager-arg = local.kube_controller_manager_arg
       flannel-iface               = local.flannel_iface
       node-external-ip            = module.control_planes[k].ipv4_address
-      node-ip                     = module.control_planes[k].private_ipv4_address
+      # node-ip                     = module.control_planes[k].private_ipv4_address
       advertise-address           = module.control_planes[k].private_ipv4_address
       bind-address                = module.control_planes[k].private_ipv4_address
       node-label                  = v.labels
