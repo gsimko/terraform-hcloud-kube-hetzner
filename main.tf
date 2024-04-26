@@ -1,8 +1,3 @@
-resource "random_password" "k3s_token" {
-  length  = 48
-  special = false
-}
-
 data "hcloud_image" "microos_x86_snapshot" {
   with_selector     = "microos-snapshot=yes"
   with_architecture = "x86"

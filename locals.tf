@@ -8,7 +8,7 @@ locals {
   hcloud_ssh_key_id = var.hcloud_ssh_key_id == null ? hcloud_ssh_key.k3s[0].id : var.hcloud_ssh_key_id
 
   # if given as a variable, we want to use the given token. This is needed to restore the cluster
-  k3s_token = var.k3s_token == null ? random_password.k3s_token.result : var.k3s_token
+  k3s_token = var.k3s_token
 
   ccm_version    = var.hetzner_ccm_version != null ? var.hetzner_ccm_version : data.github_release.hetzner_ccm[0].release_tag
   csi_version    = length(data.github_release.hetzner_csi) == 0 ? var.hetzner_csi_version : data.github_release.hetzner_csi[0].release_tag
@@ -711,7 +711,7 @@ autoscaling:
   rancher_values = var.rancher_values != "" ? var.rancher_values : <<EOT
 hostname: "${var.rancher_hostname != "" ? var.rancher_hostname : var.lb_hostname}"
 replicas: ${length(local.control_plane_nodes)}
-bootstrapPassword: "${length(var.rancher_bootstrap_password) == 0 ? resource.random_password.rancher_bootstrap[0].result : var.rancher_bootstrap_password}"
+bootstrapPassword: "${var.rancher_bootstrap_password}"
 global:
   cattle:
     psp:

@@ -10,6 +10,6 @@ locals {
   ssh_client_identity = var.ssh_private_key == null ? var.ssh_public_key : var.ssh_private_key
 
   # the hosts name with its unique suffix attached
-  name = "${var.name}-${random_string.server.id}"
+  # name = "${var.name}-${random_string.server.id}"
 
 }

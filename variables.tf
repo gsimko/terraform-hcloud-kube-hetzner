@@ -8,7 +8,6 @@ variable "k3s_token" {
   description = "k3s master token (must match when restoring a cluster)."
   type        = string
   sensitive   = true
-  default     = null
 }
 
 variable "microos_x86_snapshot_id" {

@@ -1,18 +1,5 @@
-resource "random_string" "server" {
-  length  = 3
-  lower   = true
-  special = false
-  numeric = false
-  upper   = false
-
-  keepers = {
-    # We re-create the apart of the name changes.
-    name = var.name
-  }
-}
-
 resource "hcloud_server" "server" {
-  name               = local.name
+  name               = var.name
   image              = var.microos_snapshot_id
   server_type        = var.server_type
   location           = var.location
@@ -62,7 +49,7 @@ data "cloudinit_config" "config" {
           devices: ["/var"]
 
       # Make sure the hostname is set correctly
-      hostname: ${local.name}
+      hostname: ${var.name}
       preserve_hostname: true
 
       runcmd:

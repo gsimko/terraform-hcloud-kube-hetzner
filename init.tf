@@ -94,13 +94,6 @@ resource "null_resource" "install_wireguard" {
 #   }
 }
 
-# Needed for rancher setup
-resource "random_password" "rancher_bootstrap" {
-  count   = length(var.rancher_bootstrap_password) == 0 ? 1 : 0
-  length  = 48
-  special = false
-}
-
 # This is where all the setup of Kubernetes components happen
 resource "null_resource" "kustomization" {
   triggers = {
@@ -328,7 +321,6 @@ resource "null_resource" "kustomization" {
   depends_on = [
     hcloud_load_balancer.cluster,
     null_resource.install_k3s_on_control_planes,
-    random_password.rancher_bootstrap,
     hcloud_volume.longhorn_volume
   ]
 }
